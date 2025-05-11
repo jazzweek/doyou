@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Czytnik QR z potwierdzeniem</title>
+  <script src="https://unpkg.com/html5-qrcode@2.3.9/html5-qrcode.min.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    #reader {
+      width: 300px;
+      margin: 20px auto;
+      display: none;
+    }
+    #start-button {
+      display: inline-block;
+      margin: 20px auto;
+      padding: 12px 24px;
+      font-size: 18px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+    }
+    #result-wrapper {
+      margin-top: 20px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Zeskanuj kod QR</h2>
+  <button id="start-button">Rozpocznij skanowanie</button>
+  <div id="reader"></div>
+  <div id="result-wrapper">
+    <p><strong>Wykryto:</strong> <span id="result"></span></p>
+  </div>
+
+  <script>
+    const startButton = document.getElementById("start-button");
+    const resultWrapper = document.getElementById("result-wrapper");
+    const resultText = document.getElementById("result");
+    const readerElement = document.getElementById("reader");
+
+    const html5QrCode = new Html5Qrcode("reader");
+
+    function isValidUrl(string) {
+      try {
+        const url = new URL(string);
+        return url.protocol === "http:" || url.protocol === "https:";
+      } catch (_) {
+        return false;
+      }
+    }
+
+    function startScanning() {
+      readerElement.style.display = "block";
+      resultWrapper.style.display = "none";
+      resultText.textContent = "";
+
+      html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: 250 },
+        async (decodedText) => {
+          await html5QrCode.stop();
+          resultWrapper.style.display = "block";
+          resultText.textContent = decodedText;
+
+          if (isValidUrl(decodedText)) {
+            const go = confirm(`Czy chcesz przejść do:\n${decodedText}?`);
+            if (go) {
+              window.location.href = decodedText;
+            } else {
+              startScanning();
+            }
+          } else {
+            alert("Zeskanowany kod nie jest poprawnym adresem URL.");
+            startScanning();
+          }
+        }
+      ).catch(err => {
+        alert("Nie udało się uruchomić kamery. Sprawdź uprawnienia.");
+        console.error(err);
+      });
+    }
+
+    startButton.addEventListener("click", () => {
+      startScanning();
+    });
+  </script>
+
+</body>
+</html>
